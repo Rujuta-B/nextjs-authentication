@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
-import classes from "./auth-form.module.css";
 import { signIn } from "next-auth/client";
+import { useRouter } from "next/router";
+
+import classes from "./auth-form.module.css";
 
 async function createUser(email, password) {
   const response = await fetch("/api/auth/signup", {
@@ -10,18 +12,22 @@ async function createUser(email, password) {
       "Content-Type": "application/json",
     },
   });
+
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    throw new Error(data.message || "Something went wrong!");
   }
+
   return data;
 }
 
 function AuthForm() {
+  const emailInputRef = useRef();
+  const passwordInputRef = useRef();
+
   const [isLogin, setIsLogin] = useState(true);
-  const enteredEmailRef = useRef();
-  const enteredPasswordRef = useRef();
+  const router = useRouter();
 
   function switchAuthModeHandler() {
     setIsLogin((prevState) => !prevState);
@@ -29,21 +35,26 @@ function AuthForm() {
 
   async function submitHandler(event) {
     event.preventDefault();
-    const emailInputValue = enteredEmailRef.current.value;
-    const passwordInputValue = enteredPasswordRef.current.value;
+
+    const enteredEmail = emailInputRef.current.value;
+    const enteredPassword = passwordInputRef.current.value;
+
+    // optional: Add validation
 
     if (isLogin) {
       const result = await signIn("credentials", {
         redirect: false,
-        email: emailInputValue,
-        password: passwordInputValue,
+        email: enteredEmail,
+        password: enteredPassword,
       });
-      // console.log(result);
+
       if (!result.error) {
+        // set some auth state
+        router.replace("/profile");
       }
     } else {
       try {
-        const result = await createUser(emailInputValue, passwordInputValue);
+        const result = await createUser(enteredEmail, enteredPassword);
         console.log(result);
       } catch (error) {
         console.log(error);
@@ -57,7 +68,7 @@ function AuthForm() {
       <form onSubmit={submitHandler}>
         <div className={classes.control}>
           <label htmlFor="email">Your Email</label>
-          <input type="email" id="email" required ref={enteredEmailRef} />
+          <input type="email" id="email" required ref={emailInputRef} />
         </div>
         <div className={classes.control}>
           <label htmlFor="password">Your Password</label>
@@ -65,7 +76,7 @@ function AuthForm() {
             type="password"
             id="password"
             required
-            ref={enteredPasswordRef}
+            ref={passwordInputRef}
           />
         </div>
         <div className={classes.actions}>
